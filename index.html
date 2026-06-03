@@ -19,7 +19,8 @@
                             accent: '#00ff87',
                             accentHover: '#00cc6a',
                             gold: '#e5b842',
-                            text: '#f8fafc'
+                            text: '#f8fafc',
+                            card: 'rgba(255, 255, 255, 0.03)'
                         }
                     },
                     fontFamily: {
@@ -35,13 +36,11 @@
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             background-color: #05070a;
-            /* Премиальный анимированный фон */
             background-image: 
                 radial-gradient(circle at 15% 50%, rgba(0, 255, 135, 0.08), transparent 25%),
                 radial-gradient(circle at 85% 30%, rgba(229, 184, 66, 0.05), transparent 25%);
         }
         
-        /* Глассморфизм для карточек */
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(16px);
@@ -50,16 +49,8 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
 
-        .screen {
-            display: none;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-        }
-        
-        .screen.active {
-            display: flex;
-            opacity: 1;
-        }
+        .screen { display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .screen.active { display: flex; opacity: 1; }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeUp 0.4s ease-out forwards; }
@@ -69,10 +60,21 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Кастомный инпут */
         input:focus { outline: none; border-color: #00ff87; box-shadow: 0 0 15px rgba(0,255,135,0.2); }
-        
         ::-webkit-scrollbar { display: none; }
+
+        /* Стили для карточек игроков */
+        .player-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: transform 0.2s;
+        }
+        .player-card:active { transform: scale(0.98); }
+        .ovr-badge {
+            background: linear-gradient(135deg, #e5b842 0%, #b8860b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
 <body class="text-fc-text font-sans antialiased overflow-hidden h-screen flex justify-center">
@@ -109,8 +111,7 @@
 
                 <div class="space-y-3">
                     <label class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Выбор Клуба</label>
-                    <div class="grid grid-cols-2 gap-3" id="club-selection-grid">
-                        </div>
+                    <div class="grid grid-cols-2 gap-3" id="club-selection-grid"></div>
                 </div>
             </div>
 
@@ -130,9 +131,7 @@
                     </div>
                 </div>
                 <div class="text-right">
-                    <div class="text-fc-accent font-bold text-sm flex items-center justify-end gap-1" id="club-budget">
-                        €0.0M
-                    </div>
+                    <div class="text-fc-accent font-bold text-sm flex items-center justify-end gap-1" id="club-budget">€0.0M</div>
                     <p class="text-[9px] uppercase tracking-widest text-fc-gold font-bold mt-1" id="game-date">01 ИЮЛ 2026</p>
                 </div>
             </header>
@@ -178,14 +177,22 @@
                             <p class="text-lg font-black text-white" id="stat-squad-size">0</p>
                         </div>
                     </div>
+
+                    <div>
+                        <h3 class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-3 pl-1">Лента клуба</h3>
+                        <div id="news-feed" class="space-y-2">
+                            </div>
+                    </div>
                 </section>
 
                 <section id="tab-squad" class="tab-content space-y-4">
-                    <div class="glass-card p-5 rounded-2xl text-center">
-                        <i data-lucide="shield" class="w-8 h-8 text-fc-accent mx-auto mb-2"></i>
-                        <h3 class="text-sm font-bold text-white mb-1">Ваш состав</h3>
-                        <p class="text-xs text-gray-400">Здесь будут отображаться карточки игроков. База данных генерируется.</p>
+                    <div class="flex justify-between items-center mb-2 px-1">
+                        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Основа и Запас</h3>
+                        <span class="text-[10px] text-fc-accent font-bold px-2 py-0.5 rounded bg-fc-accent/10" id="squad-avg-rating">СРЕДНИЙ OVR: 0</span>
                     </div>
+                    
+                    <div id="squad-container" class="grid grid-cols-1 gap-3">
+                        </div>
                 </section>
 
                 <section id="tab-transfers" class="tab-content space-y-4">
@@ -227,15 +234,20 @@
             { id: 'c4', name: 'Краснодар', logo: 'КРА', budget: 50000000, power: 77, color: 'border-emerald-500' }
         ];
 
+        // База имен для генерации
+        const firstNames = ["Александр", "Дмитрий", "Максим", "Сергей", "Андрей", "Артем", "Игорь", "Никита", "Иван", "Михаил", "Денис", "Павел"];
+        const lastNames = ["Смирнов", "Иванов", "Кузнецов", "Попов", "Соколов", "Лебедев", "Козлов", "Новиков", "Морозов", "Петров", "Волков", "Зайцев"];
+        const positions = ["ВРТ", "ЛЗ", "ЦЗ", "ЦЗ", "ПЗ", "ЦОП", "ЦП", "ЦАП", "ЛФД", "ПФД", "ФРВ"];
+
         let careerData = {
             managerName: '',
             club: null,
-            date: new Date(2026, 6, 1)
+            date: new Date(2026, 6, 1),
+            squad: []
         };
 
         let selectedClubId = null;
 
-        // --- ИНИЦИАЛИЗАЦИЯ ---
         window.onload = () => {
             lucide.createIcons();
             renderClubSelection();
@@ -243,12 +255,8 @@
 
         // --- ЛОГИКА НАВИГАЦИИ ПО ЭКРАНАМ ---
         function goToScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => {
-                s.classList.remove('active');
-            });
-            setTimeout(() => {
-                document.getElementById(screenId).classList.add('active');
-            }, 50); // Небольшая задержка для плавности CSS transition
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            setTimeout(() => document.getElementById(screenId).classList.add('active'), 50);
         }
 
         function switchTab(tabId, element) {
@@ -257,7 +265,6 @@
                 item.classList.remove('text-fc-accent');
                 item.classList.add('text-gray-500');
             });
-            
             document.getElementById(`tab-${tabId}`).classList.add('active');
             element.classList.remove('text-gray-500');
             element.classList.add('text-fc-accent');
@@ -278,7 +285,7 @@
                         ${club.logo}
                     </div>
                     <p class="text-xs font-bold text-white mb-1">${club.name}</p>
-                    <p class="text-[9px] text-gray-400 font-medium">Бюджет: €${(club.budget / 1000000).toFixed(1)}M</p>
+                    <p class="text-[9px] text-gray-400 font-medium">€${(club.budget / 1000000).toFixed(1)}M</p>
                 `;
                 grid.appendChild(div);
             });
@@ -286,48 +293,126 @@
 
         function selectClub(id) {
             selectedClubId = id;
-            renderClubSelection(); // Перерисовываем для обновления стилей (выделения)
+            renderClubSelection();
         }
 
         function startCareer() {
             const inputName = document.getElementById('manager-name-input').value.trim();
             const placeholderName = document.getElementById('manager-name-input').placeholder;
-            
             careerData.managerName = inputName !== '' ? inputName : placeholderName;
             
-            if (!selectedClubId) {
-                alert('Пожалуйста, выберите клуб для старта карьеры!');
-                return;
-            }
-            
+            if (!selectedClubId) { alert('Пожалуйста, выберите клуб для старта!'); return; }
             careerData.club = startClubs.find(c => c.id === selectedClubId);
             
-            // Настраиваем Главный Хаб перед показом
+            generateTeamSquad();
             setupMainHub();
             goToScreen('screen-main');
         }
 
-        // --- ЛОГИКА ГЛАВНОГО ХАБА ---
+        // --- ГЕНЕРАТОР СОСТАВА ---
+        function generateTeamSquad() {
+            careerData.squad = [];
+            const basePower = careerData.club.power;
+            
+            // Генерируем 22 игрока (Основа 11 + Запас 11)
+            let squadPositions = [...positions, ...positions]; 
+            
+            squadPositions.forEach((pos, index) => {
+                // Разброс рейтинга вокруг силы клуба (+/- 4 пункта)
+                let ovr = basePower + (Math.floor(Math.random() * 9) - 4);
+                
+                let isGK = pos === 'ВРТ';
+                
+                careerData.squad.push({
+                    id: index,
+                    name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
+                    pos: pos,
+                    ovr: ovr,
+                    // Генерация статов в зависимости от позиции
+                    pac: isGK ? ovr - 30 : ovr + Math.floor(Math.random() * 14) - 7,
+                    sho: isGK ? ovr - 40 : ovr + Math.floor(Math.random() * 16) - 8,
+                    pas: ovr + Math.floor(Math.random() * 10) - 5,
+                    dri: isGK ? ovr - 20 : ovr + Math.floor(Math.random() * 12) - 6,
+                    def: isGK ? ovr + 5 : (pos.includes('З') ? ovr + 8 : ovr - 15),
+                    phy: ovr + Math.floor(Math.random() * 12) - 6
+                });
+            });
+
+            // Сортируем по рейтингу (лучшие сверху)
+            careerData.squad.sort((a, b) => b.ovr - a.ovr);
+        }
+
+        // --- ЛОГИКА ГЛАВНОГО ХАБА И РЕНДЕРА СОСТАВА ---
         function setupMainHub() {
-            // Шапка
             document.getElementById('hub-club-name').innerText = careerData.club.name;
             document.getElementById('hub-club-logo').innerText = careerData.club.logo;
             document.getElementById('hub-manager-name').innerText = careerData.managerName;
             document.getElementById('club-budget').innerText = `€${(careerData.club.budget / 1000000).toFixed(1)}M`;
             
-            // Данные для следующего матча
             document.getElementById('match-home-team').innerText = careerData.club.name;
             document.getElementById('match-home-power').innerText = `OVR ${careerData.club.power}`;
             
-            // Берем рандомного соперника (не наш клуб)
             const opponents = startClubs.filter(c => c.id !== careerData.club.id);
             const randomEnemy = opponents[Math.floor(Math.random() * opponents.length)];
-            
             document.getElementById('match-away-team').innerText = randomEnemy.name;
             document.getElementById('match-away-power').innerText = `OVR ${randomEnemy.power}`;
             
-            // Базово ставим 22 игрока для видимости
-            document.getElementById('stat-squad-size').innerText = '22'; 
+            document.getElementById('stat-squad-size').innerText = careerData.squad.length;
+            
+            // Расчет реального среднего OVR команды
+            const avgOvr = Math.round(careerData.squad.reduce((sum, p) => sum + p.ovr, 0) / careerData.squad.length);
+            document.getElementById('squad-avg-rating').innerText = `СРЕДНИЙ OVR: ${avgOvr}`;
+
+            // Генерация новостей
+            document.getElementById('news-feed').innerHTML = `
+                <div class="glass-card p-3 rounded-xl border-l-2 border-l-fc-gold mb-2">
+                    <p class="text-[9px] text-fc-gold font-bold mb-0.5">РУКОВОДСТВО</p>
+                    <p class="text-xs text-white font-medium">Новый менеджер ${careerData.managerName} официально приступил к своим обязанностям. Фанаты ждут трофеев!</p>
+                </div>
+                <div class="glass-card p-3 rounded-xl border-l-2 border-l-fc-accent">
+                    <p class="text-[9px] text-fc-accent font-bold mb-0.5">ИНФРАСТРУКТУРА</p>
+                    <p class="text-xs text-white font-medium">Генеральный спонсор ООО «Система-СК» установил новые солнечные коллекторы на базе клуба. Энергоэффективность стадиона повышена.</p>
+                </div>
+            `;
+
+            renderSquadCards();
+        }
+
+        function renderSquadCards() {
+            const container = document.getElementById('squad-container');
+            container.innerHTML = '';
+            
+            careerData.squad.forEach(player => {
+                const card = document.createElement('div');
+                card.className = 'player-card p-3 rounded-2xl flex items-center justify-between relative overflow-hidden';
+                
+                // Декоративный градиент для позиции
+                let posColor = 'from-blue-500/20'; // Защитники
+                if (player.pos.includes('Ф') || player.pos === 'ЦАП') posColor = 'from-fc-accent/20'; // Атака
+                else if (player.pos === 'ВРТ') posColor = 'from-fc-gold/20'; // Вратарь
+                
+                card.innerHTML = `
+                    <div class="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r ${posColor} to-transparent opacity-50"></div>
+                    <div class="flex items-center gap-3 z-10 w-full">
+                        <div class="flex flex-col items-center justify-center w-10 shrink-0 border-r border-white/10 pr-2">
+                            <span class="text-xl font-black ovr-badge leading-none">${player.ovr}</span>
+                            <span class="text-[9px] font-bold text-gray-400 mt-0.5">${player.pos}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-white truncate mb-1">${player.name}</p>
+                            <div class="grid grid-cols-6 gap-1 text-center">
+                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">PAC</p><p class="text-[10px] font-bold text-gray-200">${player.pac}</p></div>
+                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">SHO</p><p class="text-[10px] font-bold text-gray-200">${player.sho}</p></div>
+                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">PAS</p><p class="text-[10px] font-bold text-gray-200">${player.pas}</p></div>
+                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">DRI</p><p class="text-[10px] font-bold text-gray-200">${player.dri}</p></div>
+                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">DEF</p><p class="text-[10px] font-bold text-gray-200">${player.def}</p></div>
+                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">PHY</p><p class="text-[10px] font-bold text-gray-200">${player.phy}</p></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
         }
     </script>
 </body>
