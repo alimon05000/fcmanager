@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#05070a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;FC Manager&quot;,&quot;short_name&quot;:&quot;FCM&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#05070a&quot;,&quot;theme_color&quot;:&quot;#05070a&quot;}">
-    <title>FC MANAGER 26 - RPL EDITION</title>
+    <link rel="manifest" href='data:application/manifest+json,{"name":"RPL Manager 26","short_name":"RPL26","start_url":".","display":"standalone","background_color":"#05070a","theme_color":"#05070a"}'>
+    <title>RPL MANAGER 26/27</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -17,17 +17,9 @@
             theme: {
                 extend: {
                     colors: {
-                        fc: {
-                            bg: '#05070a',
-                            dark: '#0a0d14',
-                            gold: '#e5b842',
-                            text: '#f8fafc'
-                        },
-                        // Магия динамических цветов: Tailwind берет цвет из CSS переменной
-                        club: 'var(--theme-color)' 
-                    },
-                    fontFamily: {
-                        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+                        fc: { bg: '#05070a', card: '#0f141e', text: '#f8fafc' },
+                        club: 'var(--club-main)',
+                        clubsec: 'var(--club-sec)'
                     }
                 }
             }
@@ -35,471 +27,613 @@
     </script>
 
     <style>
-        :root {
-            --theme-color: #00ff87;
-            --theme-glow: rgba(0, 255, 135, 0.2);
-        }
-
+        :root { --club-main: #00ff87; --club-sec: #008844; }
+        
         body {
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             background-color: #05070a;
-            /* Динамический фон, реагирующий на цвет клуба */
-            background-image: 
-                radial-gradient(circle at 15% 50%, var(--theme-glow), transparent 30%),
-                radial-gradient(circle at 85% 30%, rgba(229, 184, 66, 0.05), transparent 25%);
+            color: #f8fafc;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(20,25,35,0.8), rgba(10,15,20,0.9));
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        /* 2D ПОЛЕ И ТАКТИКА */
+        .pitch-container {
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 200 300" preserveAspectRatio="none"><rect width="200" height="300" fill="%231a472a"/><path d="M 0,150 L 200,150 M 100,150 circle (20) M 100,150 circle (1) M 40,0 L 40,30 L 160,30 L 160,0 M 70,0 L 70,10 L 130,10 L 130,0 M 40,300 L 40,270 L 160,270 L 160,300 M 70,300 L 70,290 L 130,290 L 130,300 M 0,0 L 200,0 L 200,300 L 0,300 Z" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" fill="none"/></svg>');
+            background-size: cover;
+            background-position: center;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            position: relative;
+            width: 100%;
+            height: 320px;
+        }
+
+        .player-node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
         }
         
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        .player-node.selected {
+            transform: translate(-50%, -50%) scale(1.15);
+            filter: drop-shadow(0 0 10px var(--club-main));
+            z-index: 20;
         }
 
-        .screen { display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
-        .screen.active { display: flex; opacity: 1; }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
+        .player-shirt {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--club-main);
+            border: 2px solid var(--club-sec);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 11px;
+            color: #fff;
+            box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.5);
         }
 
-        input:focus { outline: none; border-color: var(--theme-color); box-shadow: 0 0 15px var(--theme-glow); }
-        select:focus { outline: none; border-color: var(--theme-color); }
+        .player-node .penalty { background: #e30613 !important; border-color: #8b0000 !important; }
+        
+        .player-label {
+            background: rgba(0,0,0,0.8);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: bold;
+            margin-top: -4px;
+            white-space: nowrap;
+            max-width: 50px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Адаптация и скрытие скроллбаров */
         ::-webkit-scrollbar { display: none; }
+        .screen { display: none; opacity: 0; transition: opacity 0.4s; }
+        .screen.active { display: flex; opacity: 1; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .player-card {
-            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-            border: 1px solid rgba(255,255,255,0.08);
-            transition: transform 0.2s;
-        }
-        .player-card:active { transform: scale(0.98); }
-        .ovr-badge {
-            background: linear-gradient(135deg, #e5b842 0%, #b8860b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* --- АДАПТАЦИЯ ПОД ГОРИЗОНТАЛЬНЫЙ (ЛАНДШАФТНЫЙ) РЕЖИМ --- */
+        /* Горизонтальный режим */
         @media (orientation: landscape) and (min-width: 600px) {
-            #app-container {
-                max-width: 100vw;
-                flex-direction: row;
-            }
-            #main-nav {
-                position: relative;
-                width: 80px;
-                height: 100vh;
-                border-top: none;
-                border-right: 1px solid rgba(255,255,255,0.1);
-                flex-direction: column;
-                justify-content: center;
-                padding: 0;
-            }
-            #main-nav ul {
-                flex-direction: column;
-                height: 100%;
-                justify-content: space-evenly;
-            }
-            .content-wrapper {
-                flex: 1;
-                height: 100vh;
-                display: flex;
-                flex-direction: column;
-            }
-            .landscape-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-            }
+            #app { flex-direction: row; max-width: 100vw; }
+            #bottom-nav { width: 80px; height: 100vh; flex-direction: column; justify-content: center; border-top: none; border-right: 1px solid rgba(255,255,255,0.1); }
+            #bottom-nav ul { flex-direction: column; height: 100%; justify-content: space-evenly; }
+            #main-content { flex: 1; height: 100vh; display: flex; flex-direction: column; }
+            .pitch-container { height: 100%; min-height: 300px; }
+            .landscape-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: calc(100vh - 140px); }
         }
     </style>
 </head>
-<body class="text-fc-text font-sans antialiased overflow-hidden h-screen flex justify-center w-full">
+<body class="flex justify-center w-full h-screen">
 
-    <div id="app-container" class="w-full max-w-md h-screen flex flex-col relative overflow-hidden shadow-2xl transition-all duration-300">
+    <div id="app" class="w-full max-w-md h-screen flex flex-col relative bg-fc-bg">
         
-        <!-- ЭКРАН 1: СТАРТОВЫЙ -->
-        <div id="screen-intro" class="screen active flex-col justify-center items-center h-full w-full relative p-6 text-center z-50">
-            <div class="absolute inset-0 bg-gradient-to-b from-transparent to-fc-bg/90"></div>
-            <div class="z-10 w-full flex flex-col items-center">
-                <div class="w-24 h-24 mb-6 rounded-full glass-card flex items-center justify-center border-club/30" style="box-shadow: 0 0 30px var(--theme-glow)">
-                    <i data-lucide="trophy" class="w-10 h-10 text-club transition-colors duration-500"></i>
-                </div>
-                <h1 class="text-4xl font-black tracking-tighter mb-2">FC <span class="text-club transition-colors duration-500">MANAGER</span></h1>
-                <p class="text-[10px] text-gray-400 tracking-[0.4em] mb-12 uppercase font-bold">RPL Pro Edition</p>
-                
-                <button onclick="goToScreen('screen-setup')" class="w-full glass-card hover:bg-white/5 py-4 rounded-2xl text-sm font-bold tracking-wider text-club border-club/30 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    ВЫБРАТЬ КЛУБ <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        <div id="screen-setup" class="screen active flex-col h-full w-full p-6 pt-12 z-50">
+            <h2 class="text-3xl font-black mb-1 flex items-center gap-2">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Russian_Premier_League_logo_%282022%29.svg/120px-Russian_Premier_League_logo_%282022%29.svg.png" class="h-8 object-contain"> РПЛ 26/27
+            </h2>
+            <p class="text-xs text-gray-400 mb-6">Официальный менеджер.</p>
+
+            <div class="space-y-4 mb-4">
+                <input type="text" id="manager-name" placeholder="Магомедгаджи Махмудов" class="w-full bg-fc-card border border-white/10 rounded-xl p-4 text-sm font-bold text-white focus:border-blue-500 transition-all">
+            </div>
+
+            <div class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 pb-24 content-start" id="club-grid"></div>
+
+            <div class="absolute bottom-6 left-6 right-6">
+                <button onclick="startCareer()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 text-sm tracking-wider">
+                    НАЧАТЬ КАРЬЕРУ
                 </button>
             </div>
         </div>
 
-        <!-- ЭКРАН 2: НАСТРОЙКА КАРЬЕРЫ -->
-        <div id="screen-setup" class="screen flex-col h-full w-full p-6 pt-12 z-40 relative">
-            <h2 class="text-2xl font-black mb-2">Старт Карьеры</h2>
-            <p class="text-xs text-gray-400 mb-6">Выберите клуб Российской Премьер-Лиги.</p>
-
-            <div class="space-y-6 flex-1 overflow-y-auto pb-10 pr-2">
-                <div class="space-y-2">
-                    <label class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Имя Менеджера</label>
-                    <div class="relative">
-                        <i data-lucide="user" class="absolute left-4 top-3.5 w-5 h-5 text-gray-500"></i>
-                        <input type="text" id="manager-name-input" placeholder="Введите имя..." class="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-sm font-medium text-white transition-all">
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <label class="text-[10px] uppercase tracking-wider font-bold text-gray-400">Клубы РПЛ</label>
-                    <div class="grid grid-cols-2 gap-3" id="club-selection-grid"></div>
-                </div>
-            </div>
-
-            <button onclick="startCareer()" class="w-full bg-club text-black font-black py-4 rounded-xl text-sm tracking-wider transition-all active:scale-95 mb-4" style="box-shadow: 0 0 20px var(--theme-glow)">
-                ПОДПИСАТЬ КОНТРАКТ
-            </button>
-        </div>
-
-        <!-- ЭКРАН 3: ГЛАВНЫЙ ИГРОВОЙ ХАБ -->
-        <div id="screen-main" class="screen flex-col h-full w-full relative content-wrapper">
+        <div id="screen-main" class="screen flex-col h-full w-full">
             
-            <header class="glass-card border-x-0 border-t-0 pt-10 pb-4 px-5 flex justify-between items-center z-30 shrink-0">
+            <header class="glass-panel px-5 py-4 flex justify-between items-center z-30 border-b-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-club/10 flex items-center justify-center font-black text-sm border border-club/30 shadow-inner text-club" id="hub-club-logo">ЛГ</div>
+                    <img id="hub-logo" src="" class="w-10 h-10 object-contain drop-shadow-lg">
                     <div>
-                        <h1 class="text-sm font-black tracking-tight text-white uppercase" id="hub-club-name">Клуб</h1>
-                        <p class="text-[10px] text-gray-400 font-medium tracking-wide mt-0.5">Тренер: <span id="hub-manager-name" class="text-white">Имя</span></p>
+                        <h1 class="text-sm font-black text-white" id="hub-name">Клуб</h1>
+                        <p class="text-[10px] text-gray-400">Тренер: <span id="hub-manager" class="text-white"></span></p>
                     </div>
                 </div>
                 <div class="text-right">
-                    <div class="text-club font-bold text-sm flex items-center justify-end gap-1" id="club-budget">€0.0M</div>
-                    <p class="text-[9px] uppercase tracking-widest text-fc-gold font-bold mt-1" id="game-date">01 АВГ 2026</p>
+                    <div class="text-club font-bold text-sm" id="hub-budget">€0M</div>
+                    <p class="text-[9px] font-bold text-gray-400 mt-1 uppercase">Тур <span id="hub-matchday" class="text-white">1</span> / 30</p>
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto px-5 py-6 pb-28 z-10">
+            <main id="main-content" class="flex-1 overflow-y-auto px-4 py-5 pb-24 z-10">
                 
-                <!-- ВКЛАДКА: ОФИС -->
-                <section id="tab-office" class="tab-content active space-y-5">
-                    <div class="landscape-grid">
-                        <div class="glass-card p-5 rounded-2xl relative overflow-hidden border-club/20">
-                            <div class="absolute -right-10 -top-10 w-32 h-32 bg-club/10 rounded-full blur-3xl"></div>
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-[10px] font-bold text-white bg-white/10 px-2 py-1 rounded uppercase tracking-widest">Матч Тура</span>
+                <section id="tab-home" class="tab-content active space-y-4">
+                    <div class="glass-panel p-5 rounded-2xl relative overflow-hidden" style="box-shadow: 0 10px 30px var(--club-sec)">
+                        <div class="absolute -right-10 -top-10 w-32 h-32 bg-club/20 rounded-full blur-3xl"></div>
+                        <span class="text-[10px] font-bold text-white bg-white/10 px-2 py-1 rounded">СЛЕДУЮЩИЙ МАТЧ РПЛ</span>
+                        
+                        <div class="flex justify-between items-center mt-5 mb-6">
+                            <div class="text-center w-2/5">
+                                <img id="match-home-logo" class="h-12 mx-auto mb-2 object-contain drop-shadow-md">
+                                <p class="text-xs font-black truncate" id="match-home-team">Клуб</p>
                             </div>
-                            
-                            <div class="flex justify-between items-center mt-5 mb-6">
-                                <div class="text-center w-2/5">
-                                    <p class="text-sm font-black text-white truncate" id="match-home-team">Мой Клуб</p>
-                                    <p class="text-[10px] text-club font-bold mt-1" id="match-home-power">OVR 75</p>
-                                </div>
-                                <div class="text-center w-1/5 flex justify-center">
-                                    <div class="w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-[10px] font-black text-gray-400">VS</div>
-                                </div>
-                                <div class="text-center w-2/5">
-                                    <p class="text-sm font-black text-white truncate" id="match-away-team">Соперник</p>
-                                    <p class="text-[10px] text-gray-400 font-bold mt-1" id="match-away-power">OVR 74</p>
-                                </div>
+                            <div class="text-center w-1/5"><span class="text-xs font-black text-gray-500">VS</span></div>
+                            <div class="text-center w-2/5">
+                                <img id="match-away-logo" class="h-12 mx-auto mb-2 object-contain drop-shadow-md">
+                                <p class="text-xs font-black truncate" id="match-away-team">Соперник</p>
                             </div>
-                            
-                            <button onclick="simulateMatch()" class="w-full bg-club/10 hover:bg-club/20 border border-club/50 text-club font-bold py-3 rounded-xl transition-all duration-200 active:scale-95 text-xs tracking-wider flex items-center justify-center gap-2">
-                                <i data-lucide="play" class="w-4 h-4"></i> ИГРАТЬ МАТЧ
-                            </button>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 h-fit mt-4 sm:mt-0">
-                            <div class="glass-card p-4 rounded-2xl flex flex-col justify-center items-start gap-1">
-                                <i data-lucide="bar-chart-2" class="w-5 h-5 text-fc-gold mb-1"></i>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Позиция в РПЛ</p>
-                                <p class="text-lg font-black text-white">1 <span class="text-xs text-gray-500 font-medium">место</span></p>
-                            </div>
-                            <div class="glass-card p-4 rounded-2xl flex flex-col justify-center items-start gap-1">
-                                <i data-lucide="users" class="w-5 h-5 text-club mb-1"></i>
-                                <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Сыгранность</p>
-                                <p class="text-lg font-black text-white" id="team-chemistry">95%</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- ВКЛАДКА: СОСТАВ И ТАКТИКА -->
-                <section id="tab-tactics" class="tab-content space-y-5">
-                    
-                    <!-- Блок тактических настроек -->
-                    <div class="glass-card p-4 rounded-2xl border-club/20 space-y-4">
-                        <div class="flex items-center gap-2 mb-2">
-                            <i data-lucide="layout-dashboard" class="w-5 h-5 text-club"></i>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider">План на игру</h3>
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                                <label class="text-[9px] text-gray-400 font-bold uppercase pl-1">Схема</label>
-                                <select id="tactics-formation" onchange="updateTactics()" class="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-xs text-white appearance-none">
-                                    <option value="4-3-3">4-3-3 Атака</option>
-                                    <option value="4-4-2">4-4-2 Классика</option>
-                                    <option value="3-5-2">3-5-2 Контроль</option>
-                                    <option value="5-3-2">5-3-2 Автобус</option>
-                                </select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[9px] text-gray-400 font-bold uppercase pl-1">Стиль игры</label>
-                                <select id="tactics-style" onchange="updateTactics()" class="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-xs text-white appearance-none">
-                                    <option value="balanced">Сбалансированный</option>
-                                    <option value="attacking">Атакующий</option>
-                                    <option value="possession">Тики-Така</option>
-                                    <option value="counter">Контратаки</option>
-                                </select>
-                            </div>
-                        </div>
-                        <p class="text-[10px] text-gray-400 leading-tight" id="tactics-desc">Сбалансированная игра с акцентом на фланги. Подходит для равных соперников.</p>
+                        <button onclick="playMatchday()" class="w-full bg-club text-black font-black py-3.5 rounded-xl transition-all active:scale-95 text-xs">
+                            СИМУЛИРОВАТЬ ТУР
+                        </button>
                     </div>
 
-                    <div class="flex justify-between items-center mb-2 px-1">
-                        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Основной состав</h3>
-                        <span class="text-[10px] text-club font-bold px-2 py-0.5 rounded bg-club/10" id="squad-avg-rating">OVR: 0</span>
-                    </div>
-                    
-                    <div id="squad-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Карточки генерируются JS -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="glass-panel p-4 rounded-2xl" onclick="switchTab('table', document.getElementById('nav-table'))">
+                            <p class="text-[10px] text-gray-400 font-bold mb-1">ТАБЛИЦА РПЛ</p>
+                            <p class="text-xl font-black" id="widget-pos">1 <span class="text-xs text-gray-500 font-medium">место</span></p>
+                        </div>
+                        <div class="glass-panel p-4 rounded-2xl">
+                            <p class="text-[10px] text-gray-400 font-bold mb-1">СИЛА ОСНОВЫ</p>
+                            <p class="text-xl font-black text-club" id="widget-ovr">0</p>
+                        </div>
                     </div>
                 </section>
 
-                <!-- ВКЛАДКА: ТРАНСФЕРЫ -->
-                <section id="tab-transfers" class="tab-content space-y-4">
-                    <div class="glass-card p-5 rounded-2xl text-center">
-                        <i data-lucide="search" class="w-8 h-8 text-fc-gold mx-auto mb-2"></i>
-                        <h3 class="text-sm font-bold text-white mb-1">Скаутинг и Трансферы</h3>
-                        <p class="text-xs text-gray-400">Этот модуль будет подключен на следующем этапе разработки архитектуры.</p>
+                <section id="tab-squad" class="tab-content h-full">
+                    <div class="landscape-grid">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center px-1">
+                                <span class="text-[10px] font-bold text-gray-400">2D РАССТАНОВКА (4-3-3)</span>
+                                <span class="text-[9px] text-red-400 font-bold">*Нажми на двух игроков для замены</span>
+                            </div>
+                            <div class="pitch-container" id="pitch-view">
+                                </div>
+                        </div>
+                        
+                        <div class="mt-4 sm:mt-0 space-y-2">
+                            <span class="text-[10px] font-bold text-gray-400 px-1">ЗАПАСНЫЕ ИГРОКИ</span>
+                            <div id="bench-view" class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
+                                </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-table" class="tab-content space-y-5">
+                    <div class="glass-panel rounded-2xl overflow-hidden">
+                        <div class="bg-white/5 p-3 flex text-[10px] font-bold text-gray-400 uppercase">
+                            <div class="w-6">#</div><div class="flex-1">Клуб</div><div class="w-8 text-center">И</div><div class="w-10 text-center">Мячи</div><div class="w-8 text-center text-club">О</div>
+                        </div>
+                        <div id="standings-body" class="text-xs font-medium">
+                            </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="glass-panel p-4 rounded-2xl">
+                            <p class="text-[10px] text-gray-400 font-bold mb-2">БОМБАРДИРЫ</p>
+                            <div id="scorers-list" class="space-y-2 text-xs"></div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-2xl">
+                            <p class="text-[10px] text-gray-400 font-bold mb-2">АССИСТЕНТЫ</p>
+                            <div id="assists-list" class="space-y-2 text-xs"></div>
+                        </div>
                     </div>
                 </section>
 
             </main>
 
-            <!-- Навигация -->
-            <nav id="main-nav" class="absolute bottom-0 w-full glass-card border-x-0 border-b-0 px-4 pt-3 pb-6 z-40 bg-fc-bg/95 backdrop-blur-xl">
-                <ul class="flex justify-around items-center w-full">
-                    <li onclick="switchTab('office', this)" class="nav-item flex flex-col items-center cursor-pointer text-club transition-all duration-300 w-1/3 text-center">
-                        <i data-lucide="home" class="w-6 h-6 mb-1"></i>
-                        <span class="text-[9px] font-bold tracking-wider uppercase">Офис</span>
+            <nav id="bottom-nav" class="absolute bottom-0 w-full glass-panel border-x-0 border-b-0 px-2 pt-2 pb-6 z-40">
+                <ul class="flex justify-around items-center">
+                    <li onclick="switchTab('home', this)" class="nav-item flex flex-col items-center cursor-pointer text-club transition-all p-2 w-1/4 text-center">
+                        <i data-lucide="home" class="w-5 h-5 mb-1"></i><span class="text-[9px] font-bold">Главная</span>
                     </li>
-                    <li onclick="switchTab('tactics', this)" class="nav-item flex flex-col items-center cursor-pointer text-gray-500 hover:text-white transition-all duration-300 w-1/3 text-center">
-                        <i data-lucide="layout-template" class="w-6 h-6 mb-1"></i>
-                        <span class="text-[9px] font-bold tracking-wider uppercase">Состав</span>
+                    <li onclick="switchTab('squad', this)" class="nav-item flex flex-col items-center cursor-pointer text-gray-500 hover:text-white transition-all p-2 w-1/4 text-center">
+                        <i data-lucide="users" class="w-5 h-5 mb-1"></i><span class="text-[9px] font-bold">Состав</span>
                     </li>
-                    <li onclick="switchTab('transfers', this)" class="nav-item flex flex-col items-center cursor-pointer text-gray-500 hover:text-white transition-all duration-300 w-1/3 text-center">
-                        <i data-lucide="arrow-right-left" class="w-6 h-6 mb-1"></i>
-                        <span class="text-[9px] font-bold tracking-wider uppercase">Рынок</span>
+                    <li id="nav-table" onclick="switchTab('table', this)" class="nav-item flex flex-col items-center cursor-pointer text-gray-500 hover:text-white transition-all p-2 w-1/4 text-center">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 mb-1"></i><span class="text-[9px] font-bold">Таблица</span>
                     </li>
                 </ul>
             </nav>
+        </div>
+        
+        <div id="match-result-modal" class="fixed inset-0 bg-black/90 z-[100] flex flex-col justify-center items-center opacity-0 pointer-events-none transition-opacity duration-300 p-6">
+            <span class="text-xs font-bold text-club tracking-widest mb-4 border border-club/30 px-3 py-1 rounded-full">ФИНАЛЬНЫЙ СВИСТОК</span>
+            <div class="w-full max-w-sm glass-panel p-6 rounded-2xl text-center space-y-6">
+                <div class="flex justify-between items-center">
+                    <div class="w-2/5"><img id="res-home-logo" class="h-16 mx-auto mb-2 object-contain"><p class="text-sm font-black" id="res-home-name">Клуб 1</p></div>
+                    <div class="w-1/5 text-4xl font-black text-white" id="res-score">0:0</div>
+                    <div class="w-2/5"><img id="res-away-logo" class="h-16 mx-auto mb-2 object-contain"><p class="text-sm font-black" id="res-away-name">Клуб 2</p></div>
+                </div>
+                <div id="res-events" class="text-[10px] text-gray-400 space-y-1 h-20 overflow-y-auto"></div>
+                <button onclick="closeMatchModal()" class="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-all">ПРОДОЛЖИТЬ</button>
+            </div>
         </div>
 
     </div>
 
     <script>
-        // --- БАЗА ДАННЫХ РПЛ (С РЕАЛЬНЫМИ ЦВЕТАМИ И ИГРОКАМИ) ---
-        const rplClubs = [
-            { id: 'zen', name: 'Зенит', logo: 'ЗЕН', color: '#00a3e6', budget: 95000000, power: 82, 
-              players: [{n: 'Вендел', p: 'ЦП', o: 83}, {n: 'Клаудиньо', p: 'ЦАП', o: 83}, {n: 'Барриос', p: 'ЦОП', o: 81}, {n: 'Кассьерра', p: 'ФРВ', o: 80}, {n: 'Дуглас Сантос', p: 'ЛЗ', o: 82}] },
-            { id: 'spa', name: 'Спартак', logo: 'СПР', color: '#e30613', budget: 65000000, power: 78, 
-              players: [{n: 'Барко', p: 'ЦАП', o: 80}, {n: 'Угальде', p: 'ФРВ', o: 78}, {n: 'Бабич', p: 'ЦЗ', o: 79}, {n: 'Зобнин', p: 'ЦП', o: 77}, {n: 'Максименко', p: 'ВРТ', o: 78}] },
-            { id: 'dyn', name: 'Динамо', logo: 'ДИН', color: '#005fa8', budget: 55000000, power: 79, 
-              players: [{n: 'Тюкавин', p: 'ФРВ', o: 81}, {n: 'Бителло', p: 'ЦАП', o: 80}, {n: 'Карраскаль', p: 'ЛФД', o: 78}, {n: 'Бальбуэна', p: 'ЦЗ', o: 77}, {n: 'Лунев', p: 'ВРТ', o: 78}] },
-            { id: 'kra', name: 'Краснодар', logo: 'КРА', color: '#006633', budget: 50000000, power: 79, 
-              players: [{n: 'Сперцян', p: 'ЦАП', o: 82}, {n: 'Кордоба', p: 'ФРВ', o: 81}, {n: 'Черников', p: 'ЦОП', o: 78}, {n: 'Алонсо', p: 'ЦЗ', o: 79}, {n: 'Сафонов', p: 'ВРТ', o: 81}] },
-            { id: 'csk', name: 'ЦСКА', logo: 'ЦСК', color: '#d50000', budget: 45000000, power: 77, 
-              players: [{n: 'Акинфеев', p: 'ВРТ', o: 80}, {n: 'Обляков', p: 'ЦП', o: 79}, {n: 'Файзуллаев', p: 'ПФД', o: 78}, {n: 'Дивеев', p: 'ЦЗ', o: 77}, {n: 'Мусаев', p: 'ФРВ', o: 76}] },
-            { id: 'lok', name: 'Локомотив', logo: 'ЛОК', color: '#009933', budget: 40000000, power: 76, 
-              players: [{n: 'Баринов', p: 'ЦОП', o: 79}, {n: 'Пиняев', p: 'ЛФД', o: 77}, {n: 'Лантратов', p: 'ВРТ', o: 79}, {n: 'Тикнизян', p: 'ЛЗ', o: 78}, {n: 'Воробьев', p: 'ФРВ', o: 75}] },
-            { id: 'ros', name: 'Ростов', logo: 'РОС', color: '#ffcc00', budget: 25000000, power: 74, players: [] },
-            { id: 'rub', name: 'Рубин', logo: 'РУБ', color: '#990033', budget: 20000000, power: 73, players: [] }
-        ];
+        // --- 1. БАЗА ДАННЫХ РПЛ (16 Команд, Цвета Форм, Вики-логотипы) ---
+        // Цвета: [Основной (футболка), Второстепенный (шорты/детали)]
+        const db = {
+            clubs: [
+                { id: 'zen', name: 'Зенит', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/FC_Zenit_1_star_2015.png/240px-FC_Zenit_1_star_2015.png', colors: ['#00a3e6', '#ffffff'], budget: 95, ovr: 82, players: [ {n: 'Кассьерра', p:'ФРВ', o:82}, {n:'Глушенков', p:'ПФД', o:81}, {n:'Клаудиньо', p:'ЦАП', o:83}, {n:'Вендел', p:'ЦП', o:83}, {n:'Барриос', p:'ЦОП', o:82}, {n:'Мостовой', p:'ЛФД', o:78}, {n:'Дуглас', p:'ЛЗ', o:81}, {n:'Нино', p:'ЦЗ', o:80}, {n:'Эракович', p:'ЦЗ', o:79}, {n:'Караваев', p:'ПЗ', o:78}, {n:'Латышонок', p:'ВРТ', o:79} ] },
+                { id: 'spa', name: 'Спартак', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/FC_Spartak_Moscow_logo.svg/200px-FC_Spartak_Moscow_logo.svg.png', colors: ['#e30613', '#ffffff'], budget: 65, ovr: 79, players: [ {n:'Угальде', p:'ФРВ', o:80}, {n:'Барко', p:'ЦАП', o:81}, {n:'Бонгонда', p:'ПФД', o:78}, {n:'Зиньковский', p:'ЛФД', o:77}, {n:'Мартинс', p:'ЦП', o:78}, {n:'Умяров', p:'ЦОП', o:76}, {n:'Рябчук', p:'ЛЗ', o:76}, {n:'Бабич', p:'ЦЗ', o:80}, {n:'Литвинов', p:'ЦЗ', o:77}, {n:'Денисов', p:'ПЗ', o:75}, {n:'Максименко', p:'ВРТ', o:79} ] },
+                { id: 'csk', name: 'ЦСКА', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/PFC_CSKA_Moscow_logo.svg/200px-PFC_CSKA_Moscow_logo.svg.png', colors: ['#0033a0', '#e30613'], budget: 50, ovr: 78, players: [ {n:'Мусаев', p:'ФРВ', o:77}, {n:'Обляков', p:'ЦАП', o:80}, {n:'Файзуллаев', p:'ЛФД', o:79}, {n:'Келлвен', p:'ПФД', o:76}, {n:'Зделар', p:'ЦОП', o:77}, {n:'Кисляк', p:'ЦП', o:74}, {n:'Круговой', p:'ЛЗ', o:78}, {n:'Дивеев', p:'ЦЗ', o:79}, {n:'Роша', p:'ЦЗ', o:78}, {n:'Мойзес', p:'ПЗ', o:77}, {n:'Акинфеев', p:'ВРТ', o:80} ] },
+                { id: 'dyn', name: 'Динамо', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/FC_Dynamo_Moscow_logo.svg/200px-FC_Dynamo_Moscow_logo.svg.png', colors: ['#005fa8', '#ffffff'], budget: 55, ovr: 79, players: [ {n:'Тюкавин', p:'ФРВ', o:81}, {n:'Бителло', p:'ЦАП', o:81}, {n:'Нгамале', p:'ЛФД', o:78}, {n:'Гладышев', p:'ПФД', o:75}, {n:'Фомин', p:'ЦП', o:78}, {n:'Лаксальт', p:'ЦОП', o:79}, {n:'Скопинцев', p:'ЛЗ', o:77}, {n:'Бальбуэна', p:'ЦЗ', o:78}, {n:'Майсторович', p:'ЦЗ', o:75}, {n:'Даса', p:'ПЗ', o:76}, {n:'Лунев', p:'ВРТ', o:79} ] },
+                { id: 'kra', name: 'Краснодар', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/FC_Krasnodar_logo.svg/200px-FC_Krasnodar_logo.svg.png', colors: ['#005e36', '#000000'], budget: 60, ovr: 80, players: [ {n:'Кордоба', p:'ФРВ', o:82}, {n:'Сперцян', p:'ЦАП', o:82}, {n:'Виктор Са', p:'ЛФД', o:78}, {n:'Батчи', p:'ПФД', o:77}, {n:'Черников', p:'ЦОП', o:78}, {n:'Кастаньо', p:'ЦП', o:76}, {n:'Оласа', p:'ЛЗ', o:77}, {n:'Алонсо', p:'ЦЗ', o:80}, {n:'Тормена', p:'ЦЗ', o:78}, {n:'Петров', p:'ПЗ', o:75}, {n:'Агкацев', p:'ВРТ', o:77} ] },
+                { id: 'lok', name: 'Локомотив', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/FC_Lokomotiv_Moscow_logo.svg/200px-FC_Lokomotiv_Moscow_logo.svg.png', colors: ['#008033', '#e30613'], budget: 45, ovr: 77, players: [ {n:'Воробьев', p:'ФРВ', o:76}, {n:'Батраков', p:'ЦАП', o:78}, {n:'Пиняев', p:'ЛФД', o:78}, {n:'Самошников', p:'ПФД', o:75}, {n:'Баринов', p:'ЦОП', o:80}, {n:'Карпукас', p:'ЦП', o:77}, {n:'Сильянов', p:'ЛЗ', o:76}, {n:'Ньямси', p:'ЦЗ', o:77}, {n:'Морозов', p:'ЦЗ', o:76}, {n:'Ненахов', p:'ПЗ', o:75}, {n:'Лантратов', p:'ВРТ', o:80} ] },
+                { id: 'ros', name: 'Ростов', logo: 'https://upload.wikimedia.org/wikipedia/ru/thumb/9/91/FC_Rostov_logo.svg/200px-FC_Rostov_logo.svg.png', colors: ['#fcd015', '#004f9e'], budget: 25, ovr: 74 },
+                { id: 'rub', name: 'Рубин', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/FC_Rubin_Kazan_logo.svg/200px-FC_Rubin_Kazan_logo.svg.png', colors: ['#990033', '#005fa8'], budget: 30, ovr: 74 },
+                { id: 'krs', name: 'Крылья', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/FC_Krylia_Sovetov_logo.svg/200px-FC_Krylia_Sovetov_logo.svg.png', colors: ['#00a3e6', '#000000'], budget: 20, ovr: 73 },
+                { id: 'akh', name: 'Ахмат', logo: 'https://upload.wikimedia.org/wikipedia/ru/thumb/1/1d/FC_Akhmat_Grozny_logo.svg/200px-FC_Akhmat_Grozny_logo.svg.png', colors: ['#008033', '#ffffff'], budget: 18, ovr: 72 },
+                { id: 'fak', name: 'Факел', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/FC_Fakel_Voronezh_logo.svg/200px-FC_Fakel_Voronezh_logo.svg.png', colors: ['#0033a0', '#ffffff'], budget: 12, ovr: 69 },
+                { id: 'pnn', name: 'Пари НН', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/FC_Nizhny_Novgorod_logo.svg/200px-FC_Nizhny_Novgorod_logo.svg.png', colors: ['#00a3e6', '#000000'], budget: 15, ovr: 70 },
+                { id: 'ore', name: 'Оренбург', logo: 'https://upload.wikimedia.org/wikipedia/ru/thumb/0/05/FC_Orenburg_logo.svg/200px-FC_Orenburg_logo.svg.png', colors: ['#005fa8', '#ffffff'], budget: 14, ovr: 71 },
+                { id: 'makh', name: 'Махачкала', logo: 'https://upload.wikimedia.org/wikipedia/ru/thumb/8/87/FC_Dynamo_Makhachkala_logo.svg/200px-FC_Dynamo_Makhachkala_logo.svg.png', colors: ['#005fa8', '#ffffff'], budget: 10, ovr: 68 },
+                { id: 'khim', name: 'Химки', logo: 'https://upload.wikimedia.org/wikipedia/ru/thumb/d/d7/FC_Khimki_logo.svg/200px-FC_Khimki_logo.svg.png', colors: ['#e30613', '#000000'], budget: 13, ovr: 69 },
+                { id: 'akr', name: 'Акрон', logo: 'https://upload.wikimedia.org/wikipedia/ru/thumb/5/52/FC_Akron_Tolyatti_logo.svg/200px-FC_Akron_Tolyatti_logo.svg.png', colors: ['#e30613', '#000000'], budget: 12, ovr: 70 }
+            ],
+            fNames: ["Иван","Алексей","Егор","Данил","Артем","Денис","Роман","Илья"],
+            lNames: ["Иванов","Смирнов","Попов","Соколов","Новиков","Морозов","Волков","Зайцев"]
+        };
 
-        // Генератор для заполнения недостающих игроков
-        const firstNames = ["Иван", "Алексей", "Дмитрий", "Сергей", "Егор", "Максим", "Данил", "Артем"];
-        const lastNames = ["Иванов", "Смирнов", "Попов", "Соколов", "Козлов", "Лебедев", "Новиков", "Морозов"];
-        const basePositions = ["ВРТ", "ПЗ", "ЦЗ", "ЦЗ", "ЛЗ", "ЦОП", "ЦП", "ПФД", "ЛФД", "ФРВ"];
+        // --- СОСТОЯНИЕ КАРЬЕРЫ ---
+        let state = {
+            manager: '', clubId: null, matchday: 1, schedule: [], standings: {}, stats: { scorers: [], assists: [] },
+            mySquad: [] // 11 основа, 7 запас
+        };
 
-        let careerData = { managerName: '', club: null, squad: [], tacticFormation: '4-3-3', tacticStyle: 'balanced' };
-        let selectedClubId = null;
+        let selectedNode = null; // Для свапа на 2D поле
 
-        window.onload = () => { lucide.createIcons(); renderClubSelection(); }
+        window.onload = () => { lucide.createIcons(); renderSetup(); }
 
-        function changeTheme(color) {
-            document.documentElement.style.setProperty('--theme-color', color);
-            // Преобразование HEX в RGB для свечения
-            let r = parseInt(color.slice(1, 3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
-            document.documentElement.style.setProperty('--theme-glow', `rgba(${r}, ${g}, ${b}, 0.3)`);
-        }
-
-        function goToScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            setTimeout(() => document.getElementById(screenId).classList.add('active'), 50);
-        }
-
-        function switchTab(tabId, element) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('text-club'); item.classList.add('text-gray-500');
-            });
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-            element.classList.remove('text-gray-500'); element.classList.add('text-club');
-        }
-
-        function renderClubSelection() {
-            const grid = document.getElementById('club-selection-grid');
-            grid.innerHTML = '';
-            
-            rplClubs.forEach(club => {
-                const isSelected = selectedClubId === club.id;
+        function renderSetup() {
+            const grid = document.getElementById('club-grid');
+            db.clubs.forEach(c => {
+                const isSelected = state.clubId === c.id;
                 const div = document.createElement('div');
-                div.className = `glass-card p-3 rounded-xl cursor-pointer border transition-all duration-200 flex flex-col items-center text-center ${isSelected ? 'bg-white/10' : 'border-white/5 hover:bg-white/5'}`;
-                if (isSelected) div.style.borderColor = club.color;
-                
-                div.onclick = () => { selectedClubId = club.id; changeTheme(club.color); renderClubSelection(); };
-                
+                div.className = `glass-panel p-3 rounded-xl cursor-pointer text-center flex flex-col items-center border-2 transition-all ${isSelected ? 'border-['+c.colors[0]+'] bg-white/10' : 'border-transparent hover:bg-white/5'}`;
+                if(isSelected) { div.style.borderColor = c.colors[0]; div.style.boxShadow = `0 0 15px ${c.colors[0]}40`; }
+                div.onclick = () => { state.clubId = c.id; renderSetup(); };
                 div.innerHTML = `
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-xs mb-2 text-white shadow-inner border border-white/20" style="background-color: ${club.color}">
-                        ${club.logo}
-                    </div>
-                    <p class="text-xs font-bold text-white mb-0.5">${club.name}</p>
-                    <p class="text-[9px] text-gray-400">OVR ${club.power}</p>
+                    <img src="${c.logo}" class="h-12 w-12 object-contain mb-2 drop-shadow-md">
+                    <p class="text-xs font-bold">${c.name}</p>
+                    <p class="text-[9px] text-gray-400">OVR ${c.ovr}</p>
                 `;
                 grid.appendChild(div);
             });
         }
 
-        function startCareer() {
-            const inputName = document.getElementById('manager-name-input').value.trim();
-            careerData.managerName = inputName !== '' ? inputName : 'Безымянный Тренер';
+        // --- ГЕНЕРАТОРЫ И СТАРТ ---
+        function generateSquad(club) {
+            let squad = [];
+            let form = ['ВРТ', 'ЛЗ', 'ЦЗ', 'ЦЗ', 'ПЗ', 'ЦОП', 'ЦП', 'ЦАП', 'ЛФД', 'ПФД', 'ФРВ', 'ВРТ', 'ЦЗ', 'ПЗ', 'ЦП', 'ЛФД', 'ФРВ', 'ЦАП'];
             
-            if (!selectedClubId) { alert('Выберите клуб!'); return; }
-            careerData.club = rplClubs.find(c => c.id === selectedClubId);
-            
-            generateTeamSquad();
-            setupMainHub();
-            goToScreen('screen-main');
-        }
-
-        function generateTeamSquad() {
-            careerData.squad = [];
-            const club = careerData.club;
-            
-            // Добавляем реальных звезд, если есть
-            let currentRealPlayers = 0;
-            if (club.players && club.players.length > 0) {
-                club.players.forEach((p, idx) => {
-                    careerData.squad.push({
-                        id: idx, name: p.n, pos: p.p, ovr: p.o,
-                        pac: p.o + Math.floor(Math.random()*10)-5, sho: p.o + Math.floor(Math.random()*10)-5,
-                        pas: p.o + Math.floor(Math.random()*10)-5, dri: p.o + Math.floor(Math.random()*10)-5,
-                        def: p.o - 10, phy: p.o + Math.floor(Math.random()*10)-5
-                    });
-                    currentRealPlayers++;
-                });
-            }
-
-            // Догенерируем до 16 игроков (Основа + скамейка)
-            for(let i = currentRealPlayers; i < 16; i++) {
-                let pos = basePositions[i % basePositions.length];
-                let ovr = club.power + (Math.floor(Math.random() * 7) - 3);
-                let isGK = pos === 'ВРТ';
-                
-                careerData.squad.push({
-                    id: i,
-                    name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
-                    pos: pos, ovr: ovr,
-                    pac: isGK ? ovr - 30 : ovr + Math.floor(Math.random() * 10) - 5,
-                    sho: isGK ? ovr - 40 : ovr + Math.floor(Math.random() * 10) - 5,
-                    pas: ovr + Math.floor(Math.random() * 10) - 5,
-                    dri: isGK ? ovr - 20 : ovr + Math.floor(Math.random() * 10) - 5,
-                    def: isGK ? ovr + 5 : (pos.includes('З') ? ovr + 8 : ovr - 15),
-                    phy: ovr + Math.floor(Math.random() * 10) - 5
-                });
-            }
-            careerData.squad.sort((a, b) => b.ovr - a.ovr);
-        }
-
-        function updateTactics() {
-            careerData.tacticFormation = document.getElementById('tactics-formation').value;
-            careerData.tacticStyle = document.getElementById('tactics-style').value;
-            
-            const desc = document.getElementById('tactics-desc');
-            if(careerData.tacticStyle === 'attacking') desc.innerText = 'Максимальное давление. Высокий риск контратак соперника, но больше шансов забить.';
-            else if(careerData.tacticStyle === 'possession') desc.innerText = 'Контроль мяча. Игроки ищут верные пасы, снижая темп игры.';
-            else if(careerData.tacticStyle === 'counter') desc.innerText = 'Глубокая оборона с резкими выпадами. Эффективно против сильных атакующих команд.';
-            else desc.innerText = 'Сбалансированная игра без явных перекосов в атаку или защиту.';
-        }
-
-        function setupMainHub() {
-            document.getElementById('hub-club-name').innerText = careerData.club.name;
-            document.getElementById('hub-club-logo').innerText = careerData.club.logo;
-            document.getElementById('hub-manager-name').innerText = careerData.managerName;
-            document.getElementById('club-budget').innerText = `€${(careerData.club.budget / 1000000).toFixed(1)}M`;
-            
-            document.getElementById('match-home-team').innerText = careerData.club.name;
-            document.getElementById('match-home-power').innerText = `OVR ${careerData.club.power}`;
-            
-            const opponents = rplClubs.filter(c => c.id !== careerData.club.id);
-            const randomEnemy = opponents[Math.floor(Math.random() * opponents.length)];
-            document.getElementById('match-away-team').innerText = randomEnemy.name;
-            document.getElementById('match-away-power').innerText = `OVR ${randomEnemy.power}`;
-            
-            const avgOvr = Math.round(careerData.squad.reduce((sum, p) => sum + p.ovr, 0) / careerData.squad.length);
-            document.getElementById('squad-avg-rating').innerText = `OVR: ${avgOvr}`;
-
-            renderSquadCards();
-            updateTactics();
-        }
-
-        function renderSquadCards() {
-            const container = document.getElementById('squad-container');
-            container.innerHTML = '';
-            
-            careerData.squad.forEach(player => {
-                const card = document.createElement('div');
-                card.className = 'player-card p-3 rounded-2xl flex items-center justify-between relative overflow-hidden';
-                let posColor = 'from-blue-500/20'; 
-                if (player.pos.includes('Ф') || player.pos === 'ЦАП') posColor = 'from-club/30';
-                else if (player.pos === 'ВРТ') posColor = 'from-fc-gold/20';
-                
-                card.innerHTML = `
-                    <div class="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r ${posColor} to-transparent opacity-50"></div>
-                    <div class="flex items-center gap-3 z-10 w-full">
-                        <div class="flex flex-col items-center justify-center w-10 shrink-0 border-r border-white/10 pr-2">
-                            <span class="text-xl font-black ovr-badge leading-none">${player.ovr}</span>
-                            <span class="text-[9px] font-bold text-gray-400 mt-0.5">${player.pos}</span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-white truncate mb-1">${player.name}</p>
-                            <div class="grid grid-cols-6 gap-1 text-center">
-                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">PAC</p><p class="text-[10px] font-bold text-gray-200">${player.pac}</p></div>
-                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">SHO</p><p class="text-[10px] font-bold text-gray-200">${player.sho}</p></div>
-                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">PAS</p><p class="text-[10px] font-bold text-gray-200">${player.pas}</p></div>
-                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">DRI</p><p class="text-[10px] font-bold text-gray-200">${player.dri}</p></div>
-                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">DEF</p><p class="text-[10px] font-bold text-gray-200">${player.def}</p></div>
-                                <div><p class="text-[8px] text-gray-500 font-bold mb-0.5">PHY</p><p class="text-[10px] font-bold text-gray-200">${player.phy}</p></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
+            form.forEach((pos, i) => {
+                let p = (club.players && club.players[i]) ? club.players[i] : {
+                    n: `${db.fNames[Math.floor(Math.random()*8)]} ${db.lNames[Math.floor(Math.random()*8)]}`,
+                    p: pos, o: club.ovr + Math.floor(Math.random()*7)-3
+                };
+                p.id = `p_${i}`;
+                p.realPos = p.p; // Запоминаем родную позицию
+                squad.push(p);
             });
+            return squad;
         }
 
-        function simulateMatch() {
-            // Демонстрация влияния тактики на скрытую силу команды
-            let tacticalBonus = 0;
-            if(careerData.tacticStyle === 'attacking') tacticalBonus += 2; // риск, но + к силе
-            if(careerData.tacticFormation === '4-3-3') tacticalBonus += 1;
+        function startCareer() {
+            if (!state.clubId) { alert('Выберите клуб!'); return; }
+            const input = document.getElementById('manager-name').value;
+            const ph = document.getElementById('manager-name').placeholder;
+            state.manager = input.trim() || ph;
             
-            alert(`Симуляция запущена! Ваша тактика (${careerData.tacticFormation}, ${careerData.tacticStyle}) дала бонус +${tacticalBonus} к скрытой силе команды. Полноценный 2D-экран матча будет добавлен в следующем модуле!`);
+            let club = db.clubs.find(c => c.id === state.clubId);
+            state.mySquad = generateSquad(club);
+            
+            // Инициализация турнира
+            db.clubs.forEach(c => { state.standings[c.id] = { id: c.id, n: c.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0, squad: generateSquad(c) }; });
+            
+            // Генерация календаря (Круговая система упрощенно для демо, каждый играет случайный матч)
+            for(let i=1; i<=30; i++) {
+                let mw = []; let arr = [...db.clubs];
+                while(arr.length > 1) {
+                    let h = arr.splice(Math.floor(Math.random()*arr.length), 1)[0];
+                    let a = arr.splice(Math.floor(Math.random()*arr.length), 1)[0];
+                    mw.push({ home: h.id, away: a.id });
+                }
+                state.schedule.push(mw);
+            }
+
+            // Установка цветов
+            document.documentElement.style.setProperty('--club-main', club.colors[0]);
+            document.documentElement.style.setProperty('--club-sec', club.colors[1]);
+
+            setupHub();
+            document.getElementById('screen-setup').classList.remove('active');
+            setTimeout(() => document.getElementById('screen-main').classList.add('active'), 100);
+        }
+
+        function setupHub() {
+            let club = db.clubs.find(c => c.id === state.clubId);
+            document.getElementById('hub-name').innerText = club.name;
+            document.getElementById('hub-logo').src = club.logo;
+            document.getElementById('hub-manager').innerText = state.manager;
+            document.getElementById('hub-budget').innerText = `€${club.budget}M`;
+            updateHomeTab();
+            renderTable();
+            renderPitch();
+        }
+
+        function switchTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => { i.classList.remove('text-club'); i.classList.add('text-gray-500'); });
+            document.getElementById(`tab-${id}`).classList.add('active');
+            el.classList.remove('text-gray-500'); el.classList.add('text-club');
+            if(id === 'squad') renderPitch();
+        }
+
+        function updateHomeTab() {
+            document.getElementById('hub-matchday').innerText = state.matchday;
+            if(state.matchday > 30) return alert('Сезон окончен!');
+            
+            let myMatch = state.schedule[state.matchday-1].find(m => m.home === state.clubId || m.away === state.clubId);
+            let isHome = myMatch.home === state.clubId;
+            let oppId = isHome ? myMatch.away : myMatch.home;
+            let opp = db.clubs.find(c => c.id === oppId);
+            let club = db.clubs.find(c => c.id === state.clubId);
+
+            document.getElementById('match-home-team').innerText = isHome ? club.name : opp.name;
+            document.getElementById('match-home-logo').src = isHome ? club.logo : opp.logo;
+            document.getElementById('match-away-team').innerText = !isHome ? club.name : opp.name;
+            document.getElementById('match-away-logo').src = !isHome ? club.logo : opp.logo;
+
+            // Расчет силы с учетом штрафов позиций
+            let actualOvr = calculateActualOvr();
+            document.getElementById('widget-ovr').innerText = actualOvr;
+            
+            let pos = Object.values(state.standings).sort(sortStandings).findIndex(s => s.id === state.clubId) + 1;
+            document.getElementById('widget-pos').innerHTML = `${pos} <span class="text-xs text-gray-500 font-medium">место</span>`;
+        }
+
+        // --- 2. 2D ПОЛЕ И ЛОГИКА ЗАМЕН ---
+        // Координаты схемы 4-3-3: ВРТ(0), ЛЗ(1), ЛЦЗ(2), ПЦЗ(3), ПЗ(4), ЦОП(5), ЛЦП(6), ПЦП(7), ЛФД(8), ПФД(9), ФРВ(10)
+        const formation433 = [
+            { x: 50, y: 90, req: 'ВРТ' }, { x: 15, y: 70, req: 'ЛЗ' }, { x: 35, y: 75, req: 'ЦЗ' }, { x: 65, y: 75, req: 'ЦЗ' }, { x: 85, y: 70, req: 'ПЗ' },
+            { x: 50, y: 55, req: 'ЦОП' }, { x: 30, y: 40, req: 'ЦП' }, { x: 70, y: 40, req: 'ЦП' }, 
+            { x: 20, y: 15, req: 'ЛФД' }, { x: 80, y: 15, req: 'ПФД' }, { x: 50, y: 10, req: 'ФРВ' }
+        ];
+
+        function renderPitch() {
+            const pitch = document.getElementById('pitch-view');
+            const bench = document.getElementById('bench-view');
+            pitch.innerHTML = ''; bench.innerHTML = '';
+
+            state.mySquad.forEach((p, index) => {
+                let div = document.createElement('div');
+                let isStarter = index < 11;
+                
+                let effectiveOvr = p.o;
+                let penaltyClass = '';
+                
+                if (isStarter) {
+                    let slot = formation433[index];
+                    div.className = 'player-node';
+                    div.style.left = `${slot.x}%`; div.style.top = `${slot.y}%`;
+                    
+                    // ШТРАФ ЗА ПОЗИЦИЮ (основная фича)
+                    if (p.realPos !== slot.req && !(slot.req === 'ЦП' && p.realPos === 'ЦАП')) {
+                        effectiveOvr -= 10;
+                        penaltyClass = 'penalty';
+                    }
+                } else {
+                    div.className = 'bg-white/5 border border-white/10 rounded-lg p-2 flex justify-between items-center cursor-pointer hover:bg-white/10';
+                }
+
+                if (selectedNode === index) div.classList.add('selected', 'ring-2', 'ring-club');
+
+                div.onclick = () => handlePlayerSelect(index);
+
+                if (isStarter) {
+                    div.innerHTML = `
+                        <div class="player-shirt ${penaltyClass}">${effectiveOvr}</div>
+                        <div class="player-label">${p.n.split(' ')[0]}</div>
+                    `;
+                    pitch.appendChild(div);
+                } else {
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2"><div class="w-6 h-6 bg-club/20 rounded-full flex items-center justify-center text-[10px] font-bold text-club">${p.realPos}</div>
+                        <span class="text-xs font-bold">${p.n}</span></div>
+                        <span class="text-xs font-black ${effectiveOvr<p.o ? 'text-red-500':'text-fc-text'}">${effectiveOvr}</span>
+                    `;
+                    bench.appendChild(div);
+                }
+            });
+            document.getElementById('widget-ovr').innerText = calculateActualOvr();
+        }
+
+        function handlePlayerSelect(index) {
+            if (selectedNode === null) {
+                selectedNode = index;
+            } else {
+                // Свап
+                let temp = state.mySquad[selectedNode];
+                state.mySquad[selectedNode] = state.mySquad[index];
+                state.mySquad[index] = temp;
+                selectedNode = null;
+            }
+            renderPitch();
+        }
+
+        function calculateActualOvr() {
+            let sum = 0;
+            for(let i=0; i<11; i++) {
+                let p = state.mySquad[i];
+                let req = formation433[i].req;
+                let val = p.o;
+                if(p.realPos !== req && !(req==='ЦП' && p.realPos==='ЦАП')) val -= 10;
+                sum += val;
+            }
+            return Math.round(sum / 11);
+        }
+
+        // --- 3. ДВИЖОК МАТЧЕЙ ---
+        function playMatchday() {
+            if(state.matchday > 30) return;
+            let matches = state.schedule[state.matchday-1];
+            let myMatchRes = null;
+
+            matches.forEach(m => {
+                let h = state.standings[m.home];
+                let a = state.standings[m.away];
+                
+                // Для игрока берем актуальный OVR с учетом схемы
+                let oH = m.home === state.clubId ? calculateActualOvr() : db.clubs.find(c=>c.id===m.home).ovr;
+                let oA = m.away === state.clubId ? calculateActualOvr() : db.clubs.find(c=>c.id===m.away).ovr;
+                
+                // Реалистичный расчет голов по Пуассону-лайк формуле
+                let diff = oH - oA + 3; // +3 бонус домашней арены
+                let xgH = Math.max(0.5, 1.5 + (diff * 0.08));
+                let xgA = Math.max(0.5, 1.2 - (diff * 0.08));
+                
+                let gH = getRandGoals(xgH);
+                let gA = getRandGoals(xgA);
+                
+                // Ограничение от 10:0, максимум 5 мячей обычно
+                if(gH > 5) gH = 5; if(gA > 5) gA = 5;
+
+                // Обновление таблицы
+                h.gf += gH; h.ga += gA; h.p++;
+                a.gf += gA; a.ga += gH; a.p++;
+                if(gH > gA) { h.w++; h.pts += 3; a.l++; }
+                else if(gH < gA) { a.w++; a.pts += 3; h.l++; }
+                else { h.d++; a.d++; h.pts += 1; a.pts += 1; }
+
+                // Статистика игроков
+                distributeStats(h, gH);
+                distributeStats(a, gA);
+
+                if(m.home === state.clubId || m.away === state.clubId) {
+                    myMatchRes = { h: h, a: a, gH: gH, gA: gA };
+                }
+            });
+
+            state.matchday++;
+            showMatchResult(myMatchRes);
+        }
+
+        function getRandGoals(xg) {
+            let r = Math.random();
+            if(r < Math.exp(-xg)) return 0;
+            if(r < Math.exp(-xg) + xg*Math.exp(-xg)) return 1;
+            if(r < Math.exp(-xg) + xg*Math.exp(-xg) + (Math.pow(xg,2)/2)*Math.exp(-xg)) return 2;
+            return Math.floor(Math.random() * 3) + 3; // 3-5
+        }
+
+        function distributeStats(teamData, goals) {
+            let squad = teamData.id === state.clubId ? state.mySquad : teamData.squad;
+            for(let i=0; i<goals; i++) {
+                // Гол чаще забивает нападающий или ПЗ
+                let pool = squad.filter(p => ['ФРВ','ЛФД','ПФД','ЦАП','ЦП'].includes(p.realPos));
+                if(pool.length === 0) pool = squad;
+                let scorer = pool[Math.floor(Math.random() * pool.length)];
+                addStat(state.stats.scorers, scorer.n, teamData.n, 1);
+                
+                if(Math.random() > 0.3) {
+                    let ast = squad[Math.floor(Math.random() * 10)];
+                    if(ast.n !== scorer.n) addStat(state.stats.assists, ast.n, teamData.n, 1);
+                }
+            }
+        }
+
+        function addStat(arr, name, clubName, val) {
+            let item = arr.find(x => x.n === name);
+            if(item) item.v += val; else arr.push({n: name, c: clubName, v: val});
+        }
+
+        // --- 4. UI РЕЗУЛЬТАТОВ И ТАБЛИЦЫ ---
+        function showMatchResult(res) {
+            document.getElementById('res-home-name').innerText = res.h.n;
+            document.getElementById('res-away-name').innerText = res.a.n;
+            document.getElementById('res-home-logo').src = db.clubs.find(c=>c.id===res.h.id).logo;
+            document.getElementById('res-away-logo').src = db.clubs.find(c=>c.id===res.a.id).logo;
+            document.getElementById('res-score').innerText = `${res.gH} : ${res.gA}`;
+            
+            let evts = '';
+            for(let i=0; i<res.gH; i++) evts += `<p class="text-club">${Math.floor(Math.random()*90)}' Гол (${res.h.n})</p>`;
+            for(let i=0; i<res.gA; i++) evts += `<p class="text-red-400">${Math.floor(Math.random()*90)}' Гол (${res.a.n})</p>`;
+            document.getElementById('res-events').innerHTML = evts || '<p>Матч без забитых мячей</p>';
+            
+            const modal = document.getElementById('match-result-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeMatchModal() {
+            document.getElementById('match-result-modal').classList.add('opacity-0', 'pointer-events-none');
+            updateHomeTab();
+            renderTable();
+        }
+
+        function sortStandings(a, b) {
+            if(b.pts !== a.pts) return b.pts - a.pts;
+            return (b.gf - b.ga) - (a.gf - a.ga);
+        }
+
+        function renderTable() {
+            const tb = document.getElementById('standings-body');
+            tb.innerHTML = '';
+            let arr = Object.values(state.standings).sort(sortStandings);
+            
+            arr.forEach((s, i) => {
+                let div = document.createElement('div');
+                div.className = `flex p-2 border-b border-white/5 items-center ${s.id===state.clubId ? 'bg-club/10 font-bold text-white' : 'text-gray-300'}`;
+                
+                let colClass = 'text-gray-500';
+                if(i < 2) colClass = 'text-yellow-400'; else if(i > 13) colClass = 'text-red-500';
+
+                div.innerHTML = `
+                    <div class="w-6 ${colClass}">${i+1}</div>
+                    <div class="flex-1 truncate">${s.n}</div>
+                    <div class="w-8 text-center">${s.p}</div>
+                    <div class="w-10 text-center text-[10px] text-gray-500">${s.gf}-${s.ga}</div>
+                    <div class="w-8 text-center text-club">${s.pts}</div>
+                `;
+                tb.appendChild(div);
+            });
+
+            // Рендер статистики
+            const renderStat = (arr, id) => {
+                const c = document.getElementById(id); c.innerHTML = '';
+                arr.sort((a,b)=>b.v-a.v).slice(0,5).forEach((item, i) => {
+                    c.innerHTML += `<div class="flex justify-between items-center bg-white/5 p-2 rounded">
+                        <span class="truncate pr-2"><span class="text-gray-500 mr-1">${i+1}.</span>${item.n} <span class="text-[9px] text-gray-400 ml-1">(${item.c})</span></span>
+                        <span class="font-bold text-club">${item.v}</span>
+                    </div>`;
+                });
+            };
+            renderStat(state.stats.scorers, 'scorers-list');
+            renderStat(state.stats.assists, 'assists-list');
         }
     </script>
 </body>
